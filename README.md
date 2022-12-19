@@ -6,12 +6,12 @@ These [AWS Simple Email Service (SES)](https://aws.amazon.com/ses/) HTML templat
 
 | Template name | Subject |
 |-|-|
-| consent-expired-min.html | Data sharing with {{dataRecipientName}} has expired |
-| consent-granted-min.html | Consent to share your data with {{dataRecipientName}} |
-| consent-reminder-min.html | Reminder of your data sharing with {{dataRecipientName}} |
-| consent-revoked-min.html | {{dataRecipientName}} is no longer receiving your data from {{dataHolderName}} |
-| consent-withdrawn-min.html | {{dataRecipientName}} is no longer receiving your data from {{dataHolderName}} |
-| one-time-password.html | "{{oneTimePassword}} is your {{dataRecipientName}} one-time password" |
+| consent-expired.min.html | Data sharing with {{dataRecipientName}} has expired |
+| consent-granted.min.html | Consent to share your data with {{dataRecipientName}} |
+| consent-reminder.min.html | Reminder of your data sharing with {{dataRecipientName}} |
+| consent-revoked.min.html | {{dataRecipientName}} is no longer receiving your data from {{dataHolderName}} |
+| consent-withdrawn.min.html | {{dataRecipientName}} is no longer receiving your data from {{dataHolderName}} |
+| one-time-password.min.html | "{{oneTimePassword}} is your {{dataRecipientName}} one-time password" |
 
 ## SES Attributes
 
