@@ -18,7 +18,8 @@ These [AWS Simple Email Service (SES)](https://aws.amazon.com/ses/) HTML templat
 | Name | Description | Possible Values/Examples |
 |-|-|-|
 | dataHolderName | Name of the data holder as provided by the ACCC Register. | CommBank |
-| dataRecipientName | Name of the entity receiving the data. Can be an ADR, Rep or Trusted Advisor. | Adatree |
+| dataRecipientName | Name of the entity facilitating collection of the data. Can be an ADR, Rep or Trusted Advisor Service Provider. | Adatree |
+| granteeName | Name of the entity receiving the data. Can be an ADR, Rep or Trusted Advisor. | Brokers Inc. |
 | dashboardLink | URL to the consent dashboard for consent management. | https://consent.adatree.au |
 | givenAt | The date at which consent was given in `dd LLLL yyyy` format | 20 December 2022 |
 | revokedAt | The date at which consent was revoked or withdrawn in `dd LLLL yyyy` format  | December 2022 |
