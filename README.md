@@ -29,3 +29,18 @@ These [AWS Simple Email Service (SES)](https://aws.amazon.com/ses/) HTML templat
 | postUsageActioner | The entity who is responsible for carrying out the postUsageAction. Can be an ADR or CDR Rep. | Adatree |
 | accessFrequency | The frequency at which the data is accessed at the data holder by the ADR. | "once", "multiple times" |
 | osps |Contains a list of nested objects with Strings `providerName`, `serviceDescription`, `accreditationId`, `cdrPolicyUri`. Any supporting parties that are involved in delivering the service to the consumer. This started off as a list of Outsourced Service Providers (OSPs) but now incorporates any supporting party that is required to be displayed. `accreditationId`, `cdrPolicyUri` are only included if the Supporting Party is an ADR. | Adatree Pty Ltd, Adatree is a CDR SaaS provider, ADRBNK000071, https://adatree.com.au/cdrpolicy|
+
+## Cheatsheet
+```bash
+#configure tenant
+export tenant=xxxxxx
+export testemail=xxxxxx
+```
+```bash
+#trigger test email for consent reminder
+aws ses send-templated-email --source ${testemail} --destination ToAddresses=${testemail} --template ${tenant}-consent-reminder --template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${tenant}.dashboard.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
+```
+```bash
+#trigger test email for consent expiry 
+aws ses send-templated-email --source ${testemail} --destination ToAddresses=${testemail} --template ${tenant}-consent-expired --template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${tenant}.dashboard.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
+```
