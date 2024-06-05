@@ -21,6 +21,7 @@ and ensure the formatter does not remove necessary spaces. These minified templa
 | consent-withdrawn.min.html | {{granteeName}} is no longer receiving your data from {{dataHolderName}} |
 | consent-extended.min.html  | Data sharing with {{granteeName}} has been extended                      |
 | one-time-password.min.html | {{oneTimePassword}} is your {{sender}} one-time password                 |
+| passwordless-link.html     | Sign in to {{sender}}                                                    |
 
 ## SES Attributes
 
