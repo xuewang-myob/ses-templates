@@ -39,8 +39,9 @@ and ensure the formatter does not remove necessary spaces. These minified templa
 | postUsageActioner | The entity who is responsible for carrying out the postUsageAction. Can be an ADR or CDR Rep.                                                                                                                                                                                                                                                                                                                                                    | Adatree                                                                                         |
 | accessFrequency   | The frequency at which the data is accessed at the data holder by the ADR.                                                                                                                                                                                                                                                                                                                                                                       | "once", "multiple times"                                                                        |
 | osps              | Contains a list of nested objects with Strings `providerName`, `serviceDescription`, `accreditationId`, `cdrPolicyUri`. Any supporting parties that are involved in delivering the service to the consumer. This started off as a list of Outsourced Service Providers (OSPs) but now incorporates any supporting party that is required to be displayed. `accreditationId`, `cdrPolicyUri` are only included if the Supporting Party is an ADR. | Adatree Pty Ltd, Adatree is a CDR SaaS provider, ADRBNK000071, https://adatree.com.au/cdrpolicy |
-| oneTimePassword   | One time password code used to login to your consent dashboard for consent management.                                                                                                                                                                                                                                                                                                                                                           | 123456                                                                                          |
-| sender            | ADR name                                                                                                                                                                                                                                                                                                                                                                                                                                         | Adatree                                                                                         |
+| oneTimePassword   | One time password code used to login to the consent dashboard for consent management                                                                                                                                                                                                                                                                                                                                                             | 123456                                                                                          |
+| sender            | Brand name of the sender                                                                                                                                                                                                                                                                                                                                                                                                                         | Adatree                                                                                         |
+| link              | Temporary URL that can be used to login to the consent dashboard for consent management without a password.                                                                                                                                                                                                                                                                                                                                      | https://consent.adatree.au                                                                      |
 
 ## Troubleshooting
 
@@ -66,13 +67,35 @@ Don't forget to prepend the following commands with the appropriate `AWS_PROFILE
 template from!
 
 ```bash
+#trigger test email for consent granted
+aws ses send-templated-email \
+--source ${testemail} \
+--destination ToAddresses=${testemail} \
+--template ${tenant}-consent-granted \
+--template-data '{"dashboardLink":"https://${dashboardDomain}.dashboard.adatree.com.au/","accessFrequency":"multiple times","osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}],"dataHolderName":"Red Australia Bank","sharingEndDate":"15 May 2025","purposes":[{"purpose":"Name"}],"scopes":[{"scope":"Personal information"},{"scope":"Bank account name, type and balance"}],"givenAt":"15 May 2024","granteeName":"John Doe","postUsageActioner": "Adatree", "postUsageAction": "deleting"}'
+```
+
+```bash
 #trigger test email for consent reminder
 aws ses send-templated-email --source ${testemail} --destination ToAddresses=${testemail} --template ${tenant}-consent-reminder --template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
 ```
 
 ```bash
+#trigger test email for consent revoked
+aws ses send-templated-email \
+--source ${testemail} \
+--destination ToAddresses=${testemail} \
+--template ${tenant}-consent-revoked \
+--template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
+```
+
+```bash
 #trigger test email for consent expiry 
-aws ses send-templated-email --source ${testemail} --destination ToAddresses=${testemail} --template ${tenant}-consent-expired --template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
+aws ses send-templated-email \
+--source ${testemail} \
+--destination ToAddresses=${testemail} \
+--template ${tenant}-consent-expired \
+--template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
 ```
 
 ```bash
@@ -81,8 +104,36 @@ aws ses send-templated-email \
 --source ${testemail} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-extended \
---template-data '{"dashboardLink":"https://${dashboardDomain}.dashboard.adatree.com.au/","accessFrequency":"multiple times","osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"MogoPlus will categorise your data","providerName":"MogoPlus"}],"dataHolderName":"Red Australia Bank","sharingEndDate":"15 May 2025","purposes":[{"purpose":"Name"}],"scopes":[{"scope":"Personal information"},{"scope":"Bank account name, type and balance"}],"givenAt":"15 May 2024","granteeName":"The end recipient of the data i.e. ADR, Rep, TA"}'
+--template-data '{"dashboardLink":"https://${dashboardDomain}.dashboard.adatree.com.au/","accessFrequency":"multiple times","osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}],"dataHolderName":"Red Australia Bank","sharingEndDate":"15 May 2025","purposes":[{"purpose":"Name"}],"scopes":[{"scope":"Personal information"},{"scope":"Bank account name, type and balance"}],"givenAt":"15 May 2024","granteeName":"John Doe"}'
+```
+
+```bash
+#trigger test email for consent otp 
+aws ses send-templated-email \
+--source ${testemail} \
+--destination ToAddresses=${testemail} \
+--template ${tenant}-consent-otp \
+--template-data '{"oneTimePassword":"123456", "sender": "Adatree"}'
+```
+
+```bash
+#trigger test email for consent passwordless-link 
+aws ses send-templated-email \
+--source ${testemail} \
+--destination ToAddresses=${testemail} \
+--template ${tenant}-consent-passwordless-link \
+--template-data '{"link":"www.test.dashboard.com", "sender": "Adatree"}'
 ```
 
 NB: You can easily generate mock `template-data` values by setting a breakpoint in the tests inside the consent
-management service eg. `EmailServiceTest`  
+management service eg. `EmailServiceTest`
+
+```bash
+#override default email template
+aws ses update-template --cli-input-json file://path/to/file.json
+```
+
+JSON format can be generated using 
+```bash
+aws ses update-template --generate-cli-skeleton
+```
