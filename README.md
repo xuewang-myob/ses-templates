@@ -59,6 +59,7 @@ The following identities failed the check in region XXX: xxx@yyy.com
 ```bash
 #configure tenant
 export tenant=xxxxxx
+export src=xxxxxx
 export testemail=xxxxxx
 export dashboardDomain=xxxxxx
 ```
@@ -66,60 +67,73 @@ export dashboardDomain=xxxxxx
 Don't forget to prepend the following commands with the appropriate `AWS_PROFILE` that you want to send the email
 template from!
 
+### consent granted
 ```bash
-#trigger test email for consent granted
 aws ses send-templated-email \
---source ${testemail} \
+--source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-granted \
 --template-data '{"dashboardLink":"https://${dashboardDomain}.dashboard.adatree.com.au/","accessFrequency":"multiple times","osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}],"dataHolderName":"Red Australia Bank","sharingEndDate":"15 May 2025","purposes":[{"purpose":"Name"}],"scopes":[{"scope":"Personal information"},{"scope":"Bank account name, type and balance"}],"givenAt":"15 May 2024","granteeName":"John Doe","postUsageActioner": "Adatree", "postUsageAction": "deleting"}'
 ```
 
+### consent reminder
 ```bash
-#trigger test email for consent reminder
-aws ses send-templated-email --source ${testemail} --destination ToAddresses=${testemail} --template ${tenant}-consent-reminder --template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
+aws ses send-templated-email \
+--source ${src} \
+--destination ToAddresses=${testemail} \
+--template ${tenant}-consent-reminder \
+--template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
 ```
 
+### consent revoked
 ```bash
-#trigger test email for consent revoked
 aws ses send-templated-email \
---source ${testemail} \
+--source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-revoked \
 --template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
 ```
 
+### consent withdrawal
 ```bash
-#trigger test email for consent expiry 
 aws ses send-templated-email \
---source ${testemail} \
+--source ${src} \
+--destination ToAddresses=${testemail} \
+--template ${tenant}-consent-withdrawal \
+--template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
+```
+
+### consent expiry
+```bash
+aws ses send-templated-email \
+--source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-expired \
 --template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing" }'
 ```
 
+### consent extended
 ```bash
-#trigger test email for consent extended 
 aws ses send-templated-email \
---source ${testemail} \
+--source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-extended \
 --template-data '{"dashboardLink":"https://${dashboardDomain}.dashboard.adatree.com.au/","accessFrequency":"multiple times","osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}],"dataHolderName":"Red Australia Bank","sharingEndDate":"15 May 2025","purposes":[{"purpose":"Name"}],"scopes":[{"scope":"Personal information"},{"scope":"Bank account name, type and balance"}],"givenAt":"15 May 2024","granteeName":"John Doe"}'
 ```
 
+### otp
 ```bash
-#trigger test email for consent otp 
 aws ses send-templated-email \
---source ${testemail} \
+--source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-otp \
 --template-data '{"oneTimePassword":"123456", "sender": "Adatree"}'
 ```
 
+### passwordless login
 ```bash
-#trigger test email for consent passwordless-link 
 aws ses send-templated-email \
---source ${testemail} \
+--source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-passwordless-link \
 --template-data '{"link":"www.test.dashboard.com", "sender": "Adatree"}'
