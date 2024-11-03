@@ -82,7 +82,7 @@ aws ses send-templated-email \
 --source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-reminder \
---template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing", "osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}] }'
+--template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes": [{"purpose":"test email template"}], "accessFrequency": "ongoing", "osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}] }'
 ```
 
 ### consent revoked
@@ -91,7 +91,7 @@ aws ses send-templated-email \
 --source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-revoked \
---template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing", "osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}] }'
+--template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes": [{"purpose":"test email template"}], "accessFrequency": "ongoing", "osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}] }'
 ```
 
 ### consent withdrawal
@@ -100,7 +100,7 @@ aws ses send-templated-email \
 --source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-withdrawal \
---template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing", "osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}] }'
+--template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes": [{"purpose":"test email template"}], "accessFrequency": "ongoing", "osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}] }'
 ```
 
 ### consent expiry
@@ -109,7 +109,7 @@ aws ses send-templated-email \
 --source ${src} \
 --destination ToAddresses=${testemail} \
 --template ${tenant}-consent-expired \
---template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes":  "test email template", "accessFrequency": "ongoing", "osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}] }'
+--template-data '{ "dataHolderName":  "Red Australia Bank", "granteeName": "John Doe", "dashboardLink":  "https://${dashboardDomain}.dashboard.adatree.com.au/", "givenAt": "some time in future", "sharingEndDate":  "right now", "scopes": "scope 1 scope 2 scope 3", "purposes": [{"purpose":"test email template"}], "accessFrequency": "ongoing", "osps":[{"cdrPolicyUri":"https://adatree.com.au/cdr-policy","serviceDescription":"hello world!","accreditationId":"ADRX00000071","providerName":"Adatree Pty Ltd"},{"serviceDescription":"sample description","providerName":"test provider"}] }'
 ```
 
 ### consent extended
