@@ -153,3 +153,4 @@ aws ses update-template --generate-cli-skeleton
 ```
 
 ### Enable the Copilot PR auto review
+- Apply the repository custom instructions
