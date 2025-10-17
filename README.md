@@ -152,4 +152,4 @@ JSON format can be generated using
 aws ses update-template --generate-cli-skeleton
 ```
 
-### Enable the copilot PR auto review
+### Enable the Copilot PR auto review
