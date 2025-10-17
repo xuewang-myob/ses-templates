@@ -1,0 +1,126 @@
+name: Copilot PR Auto Review for Specific Team
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-team-membership:
+    runs-on: ubuntu-latest
+    outputs:
+      is-team-member: ${{ steps.check-team.outputs.is-member }}
+    steps:
+      - name: Check if PR author is in specified team
+        id: check-team
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          TEAM_SLUG: ${{ vars.COPILOT_REVIEW_TEAM_SLUG || 'your-team-slug' }}
+          ORG: ${{ github.repository_owner }}
+        run: |
+          echo "Checking if $PR_AUTHOR is in team $TEAM_SLUG"
+
+          # Check team membership using GitHub API
+          response=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/orgs/$ORG/teams/$TEAM_SLUG/memberships/$PR_AUTHOR" \
+            --silent 2>&1 || echo "not-found")
+
+          if echo "$response" | grep -q '"state": "active"'; then
+            echo "is-member=true" >> $GITHUB_OUTPUT
+            echo "✅ $PR_AUTHOR is a member of team $TEAM_SLUG"
+          else
+            echo "is-member=false" >> $GITHUB_OUTPUT
+            echo "❌ $PR_AUTHOR is not a member of team $TEAM_SLUG"
+          fi
+
+  copilot-review:
+    needs: check-team-membership
+    if: needs.check-team-membership.outputs.is-team-member == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: pr-diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching PR diff..."
+          gh pr diff ${{ github.event.pull_request.number }} > pr-diff.txt
+
+          # Store diff in environment file for next step
+          echo 'PR_DIFF<<EOF' >> $GITHUB_ENV
+          cat pr-diff.txt >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+      - name: Run Copilot Review
+        uses: actions/github-script@v7
+        env:
+          COPILOT_INSTRUCTIONS: ${{ secrets.COPILOT_REVIEW_INSTRUCTIONS }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            // Read copilot instructions
+            let instructions = '';
+            try {
+              instructions = fs.readFileSync('.github/copilot-instructions.md', 'utf8');
+            } catch (error) {
+              console.log('Using default instructions');
+              instructions = process.env.COPILOT_INSTRUCTIONS || 'Please review this PR for code quality, security, and best practices.';
+            }
+
+            // Replace {PR_DIFF} placeholder with actual diff
+            const prDiff = process.env.PR_DIFF || 'No diff available';
+            const reviewPrompt = instructions.replace('{PR_DIFF}', prDiff);
+
+            // Post review comment
+            const comment = `## 🤖 Copilot Auto Review (Team-Specific)
+
+            This PR has been automatically reviewed by GitHub Copilot as the author is part of the authorized team.
+
+            ${reviewPrompt}
+
+            ---
+            *This review was triggered because the PR author is a member of the specified team.*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+  skip-review-notification:
+    needs: check-team-membership
+    if: needs.check-team-membership.outputs.is-team-member == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Notify that review was skipped
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = `## ℹ️ Copilot Auto Review Skipped
+
+            This PR was not automatically reviewed by GitHub Copilot because the author is not a member of the authorized team.
+
+            If you believe you should be part of the team that receives automatic reviews, please contact your repository administrators.`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });

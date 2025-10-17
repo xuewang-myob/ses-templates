@@ -4,6 +4,13 @@ These [AWS Simple Email Service (SES)](https://aws.amazon.com/ses/) HTML templat
 notifications sent from the Consent Management service. The HTML template verbiage should also be a reflection of what's
 documented in [Confluence](https://adatree.atlassian.net/wiki/x/AQBAGw).
 
+## GitHub Copilot Auto Review Configuration
+
+This repository includes a team-based GitHub Copilot auto review feature. For configuration instructions, see:
+- [中文配置指南](.github/COPILOT_TEAM_REVIEW_SETUP.md) - Chinese setup guide
+- [English Configuration Guide](.github/COPILOT_TEAM_REVIEW_SETUP_EN.md) - English setup guide  
+- [Ruleset Configuration](.github/RULESET_CONFIGURATION.md) - Detailed ruleset and alternative approaches
+
 ## Minifying HTML
 
 HTML templates must be minified (using online tools) before being injected into the service. Be careful when minifying
