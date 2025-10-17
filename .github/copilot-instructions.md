@@ -200,7 +200,7 @@ Bash script for batch updating SES templates via AWS CLI.
 
 The repository ignores:
 - `.idea/` - JetBrains IDE configuration
-- `custom` - Custom local files (purpose unclear)
+- `custom` - Custom local files/directories (not tracked in repository)
 
 ## No CI/CD or Validation Pipelines
 
@@ -241,12 +241,12 @@ export src=xxxxxx
 export testemail=xxxxxx
 export dashboardDomain=xxxxxx
 
-# Send test email (see README.md for complete examples)
+# Send test email (see README.md for complete examples with full template-data)
 aws ses send-templated-email \
   --source ${src} \
   --destination ToAddresses=${testemail} \
   --template ${tenant}-consent-granted \
-  --template-data '{"granteeName":"Test User",...}'
+  --template-data '{"granteeName":"Test User","dataHolderName":"Test Bank",...}'
 
 # Update template on AWS
 aws ses update-template --cli-input-json file://template.json
