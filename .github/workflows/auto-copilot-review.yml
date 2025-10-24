@@ -1,0 +1,144 @@
+name: Auto Enable Copilot Review
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  check-and-enable-copilot:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    
+    steps:
+      - name: Get PR creator email
+        id: get-email
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const creator = context.payload.pull_request.user.login;
+            
+            // Get user email from commits
+            const commits = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+            
+            // Try to find email from the most recent commit
+            let userEmail = '';
+            if (commits.data.length > 0) {
+              const latestCommit = commits.data[commits.data.length - 1];
+              if (latestCommit.commit.author && latestCommit.commit.author.email) {
+                userEmail = latestCommit.commit.author.email;
+              }
+            }
+            
+            // If no email found in commits, try to get from user API
+            if (!userEmail) {
+              try {
+                const user = await github.rest.users.getByUsername({
+                  username: creator
+                });
+                userEmail = user.data.email || '';
+              } catch (error) {
+                console.log('Could not fetch user email from API');
+              }
+            }
+            
+            console.log(`PR Creator: ${creator}`);
+            console.log(`User Email: ${userEmail}`);
+            
+            return userEmail;
+      
+      - name: Check if email is in allowed list
+        id: check-email
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const allowedEmails = [
+              'xue.wang@myob.com',
+              'example1@test.com',
+              'example2@test.com'
+            ];
+            
+            const userEmail = '${{ steps.get-email.outputs.result }}';
+            const cleanEmail = userEmail.replace(/^["']|["']$/g, '').toLowerCase();
+            
+            console.log(`Checking email: ${cleanEmail}`);
+            console.log(`Allowed emails: ${allowedEmails.join(', ')}`);
+            
+            const isAllowed = allowedEmails.some(email => 
+              email.toLowerCase() === cleanEmail
+            );
+            
+            console.log(`Is email allowed: ${isAllowed}`);
+            
+            return isAllowed;
+      
+      - name: Enable Copilot Review
+        if: steps.check-email.outputs.result == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const notificationMessage = '🤖 Copilot review has been automatically enabled for this PR based on the creator\'s email address.';
+            
+            try {
+              // Request Copilot review by adding the copilot label
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                labels: ['copilot']
+              });
+              
+              console.log('Successfully added copilot label to enable review');
+              
+              // Add a comment to notify
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: notificationMessage
+              });
+            } catch (error) {
+              console.error('Error enabling Copilot review:', error.message);
+              
+              // If label doesn't exist, create it first (GitHub returns 422 for missing labels)
+              if (error.status === 422 || error.message.includes('Label does not exist')) {
+                try {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: 'copilot',
+                    color: '0E8A16',
+                    description: 'Enable Copilot review for this PR'
+                  });
+                  
+                  // Try adding the label again
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.payload.pull_request.number,
+                    labels: ['copilot']
+                  });
+                  
+                  console.log('Created copilot label and added it to the PR');
+                  
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.payload.pull_request.number,
+                    body: notificationMessage
+                  });
+                } catch (createError) {
+                  console.error('Error creating label:', createError.message);
+                }
+              }
+            }
+      
+      - name: Skip Copilot Review
+        if: steps.check-email.outputs.result != 'true'
+        run: |
+          echo "PR creator's email is not in the allowed list. Copilot review will not be enabled."
