@@ -82,6 +82,8 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const notificationMessage = '🤖 Copilot review has been automatically enabled for this PR based on the creator\'s email address.';
+            
             try {
               // Request Copilot review by adding the copilot label
               await github.rest.issues.addLabels({
@@ -98,13 +100,13 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.payload.pull_request.number,
-                body: '🤖 Copilot review has been automatically enabled for this PR based on the creator\'s email address.'
+                body: notificationMessage
               });
             } catch (error) {
               console.error('Error enabling Copilot review:', error.message);
               
-              // If label doesn't exist, create it first
-              if (error.status === 404) {
+              // If label doesn't exist, create it first (GitHub returns 422 for missing labels)
+              if (error.status === 422 || error.message.includes('Label does not exist')) {
                 try {
                   await github.rest.issues.createLabel({
                     owner: context.repo.owner,
@@ -128,7 +130,7 @@ jobs:
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: context.payload.pull_request.number,
-                    body: '🤖 Copilot review has been automatically enabled for this PR based on the creator\'s email address.'
+                    body: notificationMessage
                   });
                 } catch (createError) {
                   console.error('Error creating label:', createError.message);
