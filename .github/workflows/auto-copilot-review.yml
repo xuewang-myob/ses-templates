@@ -2,7 +2,7 @@ name: Auto Enable Copilot Review
 
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
 
 jobs:
   check-and-enable-copilot:
@@ -77,23 +77,24 @@ jobs:
             
             return isAllowed;
       
-      - name: Enable Copilot Review
+      - name: Request Copilot Review
         if: steps.check-email.outputs.result == 'true'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const notificationMessage = '🤖 Copilot review has been automatically enabled for this PR based on the creator\'s email address.';
+            const notificationMessage = '🤖 Copilot review has been automatically requested for this PR based on the creator\'s email address.';
             
             try {
-              // Request Copilot review by adding the copilot label
-              await github.rest.issues.addLabels({
+              // Request Copilot review using the GitHub API
+              const response = await github.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers', {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number,
-                labels: ['copilot']
+                pull_number: context.payload.pull_request.number,
+                team_reviewers: ['copilot']
               });
               
-              console.log('Successfully added copilot label to enable review');
+              console.log('Successfully requested Copilot review');
               
               // Add a comment to notify
               await github.rest.issues.createComment({
@@ -103,37 +104,42 @@ jobs:
                 body: notificationMessage
               });
             } catch (error) {
-              console.error('Error enabling Copilot review:', error.message);
+              console.error('Error requesting Copilot review:', error.message);
+              console.error('Full error:', error);
               
-              // If label doesn't exist, create it first (GitHub returns 422 for missing labels)
-              if (error.status === 422 || error.message.includes('Label does not exist')) {
+              // Try alternative method: trigger Copilot by mentioning it in a review comment
+              try {
+                await github.rest.pulls.createReview({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.payload.pull_request.number,
+                  body: '@copilot review',
+                  event: 'COMMENT'
+                });
+                
+                console.log('Triggered Copilot review via review comment');
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  body: notificationMessage
+                });
+              } catch (reviewError) {
+                console.error('Error creating review comment:', reviewError.message);
+                
+                // Last resort: add a regular comment mentioning copilot
                 try {
-                  await github.rest.issues.createLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    name: 'copilot',
-                    color: '0E8A16',
-                    description: 'Enable Copilot review for this PR'
-                  });
-                  
-                  // Try adding the label again
-                  await github.rest.issues.addLabels({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: context.payload.pull_request.number,
-                    labels: ['copilot']
-                  });
-                  
-                  console.log('Created copilot label and added it to the PR');
-                  
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: context.payload.pull_request.number,
-                    body: notificationMessage
+                    body: '@copilot review\n\n' + notificationMessage
                   });
-                } catch (createError) {
-                  console.error('Error creating label:', createError.message);
+                  
+                  console.log('Added comment mentioning Copilot');
+                } catch (commentError) {
+                  console.error('Error adding comment:', commentError.message);
                 }
               }
             }
@@ -141,4 +147,4 @@ jobs:
       - name: Skip Copilot Review
         if: steps.check-email.outputs.result != 'true'
         run: |
-          echo "PR creator's email is not in the allowed list. Copilot review will not be enabled."
+          echo "PR creator's email is not in the allowed list. Copilot review will not be requested."
