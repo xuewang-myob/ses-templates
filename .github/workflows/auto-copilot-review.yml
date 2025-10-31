@@ -78,5 +78,4 @@ jobs:
       - name: Skip Copilot Review
         if: steps.check-branch.outputs.result != 'true'
         run: |
-          echo "Source branch does not start with VHNP." \
-               "Copilot review will not be requested."
+          echo "Source branch does not start with VHNP. Copilot review will not be requested."
