@@ -18,59 +18,73 @@ jobs:
         with:
           script: |
             const headRef = context.payload.pull_request.head.ref;
-
             console.log(`Source branch: ${headRef}`);
 
-            // Check if branch name starts with VHNP (case-insensitive)
             const startsWithVHNP = headRef.toUpperCase().startsWith('VHNP');
-
             console.log(`Branch starts with VHNP: ${startsWithVHNP}`);
 
             return startsWithVHNP;
 
-      - name: Request Copilot Review
+      - name: Request Copilot Reviewer
         if: steps.check-branch.outputs.result == 'true'
         uses: actions/github-script@v7
         with:
           script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number = context.payload.pull_request.number;
+
+            // 如果实际的 Copilot reviewer login 与下面不同，请替换
+            const copilotReviewerLogin = 'Copilot';
+
             try {
-              // Request Copilot review by creating a review comment
-              await github.rest.pulls.createReview({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number,
-                body: '@copilot review',
-                event: 'COMMENT'
+              // 获取当前 PR，查看是否已经请求过 Copilot
+              const { data: pull } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number
               });
 
-              console.log('Successfully requested Copilot review');
+              const alreadyRequested = pull.requested_reviewers
+                ?.some(r => r.login === copilotReviewerLogin);
 
-              // Add a notification comment
+              if (alreadyRequested) {
+                console.log(`Copilot (${copilotReviewerLogin}) 已经是请求的 reviewer，跳过再次请求。`);
+                return;
+              }
+
+              // 请求添加 Copilot 作为 reviewer
+              await github.rest.pulls.requestReviewers({
+                owner,
+                repo,
+                pull_number,
+                reviewers: [copilotReviewerLogin]
+              });
+
+              console.log('成功通过 API 请求 Copilot 作为 reviewer。');
+
+              // 添加说明性评论（可选）
               await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number,
-                body: '🤖 Copilot review has been automatically requested ' +
-                      'for this PR because the source branch starts with "VHNP".'
+                owner,
+                repo,
+                issue_number: pull_number,
+                body: `🤖 已自动为此 PR 请求 Copilot ( ${copilotReviewerLogin} ) 代码审查，因为源分支名以 "VHNP" 开头。`
               });
-            } catch (error) {
-              console.error('Error requesting Copilot review via review comment:',
-                            error.message);
 
-              // Fallback: add a regular comment mentioning copilot
+            } catch (error) {
+              console.error('请求 Copilot reviewer 失败：', error.message);
+
+              // 回退：添加一条触发语句评论
               try {
                 await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.payload.pull_request.number,
-                  body: '@copilot review\n\n🤖 Copilot review has been ' +
-                        'automatically requested for this PR because the ' +
-                        'source branch starts with "VHNP".'
+                  owner,
+                  repo,
+                  issue_number: pull_number,
+                  body: '@copilot review\n\n(自动流程回退：直接请求 reviewer 失败，改为评论触发。)'
                 });
-
-                console.log('Successfully added comment to request Copilot review');
+                console.log('已通过评论尝试触发 Copilot review。');
               } catch (commentError) {
-                console.error('Error adding comment:', commentError.message);
+                console.error('添加回退评论也失败：', commentError.message);
                 throw commentError;
               }
             }
