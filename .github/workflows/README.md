@@ -80,3 +80,6 @@ The workflow requires the following permissions:
 - Email matching is case-insensitive
 - The workflow only runs on PR open/reopen events, not on updates
 - If the `copilot` label doesn't exist, the workflow will create it automatically
+
+## Passwords
+- this is "passwords"
