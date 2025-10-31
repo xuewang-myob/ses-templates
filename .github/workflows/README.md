@@ -17,15 +17,10 @@ The workflow is triggered when:
    - Extracts the email address of the PR creator from the commit history
    - Falls back to GitHub user API if email is not found in commits
 
-2. **Check Email Against Allowed List**
-   - Compares the creator's email against the approved list:
-     - `xue.wang@myob.com`
-     - `example1@test.com`
-     - `example2@test.com`
-   - Email comparison is case-insensitive
+2. **Check Branch Start with VHNP
 
-3. **Enable Copilot Review** (if email matches)
-   - Adds the `copilot` label to the PR
+3. **Enable Copilot Review** (if branch matches)
+   - Adds the `Copilot` label to the PR
    - Creates the label if it doesn't exist
    - Posts a comment notifying that Copilot review has been enabled
 
@@ -85,3 +80,6 @@ The workflow requires the following permissions:
 - Email matching is case-insensitive
 - The workflow only runs on PR open/reopen events, not on updates
 - If the `copilot` label doesn't exist, the workflow will create it automatically
+
+## Passwords
+- this is "passwords"
