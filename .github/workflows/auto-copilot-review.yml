@@ -5,14 +5,15 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
-  check-and-enable-copilot:
+  trigger-copilot-review:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write
       contents: read
+      issues: write
+      pull-requests: read
 
     steps:
-      - name: Check if branch starts with VHNP
+      - name: Check branch prefix (VHNP*)
         id: check-branch
         uses: actions/github-script@v7
         with:
@@ -25,7 +26,7 @@ jobs:
 
             return startsWithVHNP;
 
-      - name: Request Copilot Reviewer
+      - name: Trigger Copilot Review
         if: steps.check-branch.outputs.result == 'true'
         uses: actions/github-script@v7
         with:
@@ -34,62 +35,40 @@ jobs:
             const repo = context.repo.repo;
             const pull_number = context.payload.pull_request.number;
 
-            // 如果实际的 Copilot reviewer login 与下面不同，请替换
-            const copilotReviewerLogin = 'Copilot';
+            // 1. 获取已有评论，避免重复触发
+            const existingComments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number: pull_number, per_page: 100 }
+            );
 
-            try {
-              // 获取当前 PR，查看是否已经请求过 Copilot
-              const { data: pull } = await github.rest.pulls.get({
-                owner,
-                repo,
-                pull_number
-              });
+            const alreadyTriggered = existingComments.some(c =>
+              typeof c.body === 'string' &&
+              c.body.toLowerCase().includes('@copilot review')
+            );
 
-              const alreadyRequested = pull.requested_reviewers
-                ?.some(r => r.login === copilotReviewerLogin);
-
-              if (alreadyRequested) {
-                console.log(`Copilot (${copilotReviewerLogin}) 已经是请求的 reviewer，跳过再次请求。`);
-                return;
-              }
-
-              // 请求添加 Copilot 作为 reviewer
-              await github.rest.pulls.requestReviewers({
-                owner,
-                repo,
-                pull_number,
-                reviewers: [copilotReviewerLogin]
-              });
-
-              console.log('成功通过 API 请求 Copilot 作为 reviewer。');
-
-              // 添加说明性评论（可选）
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: pull_number,
-                body: `🤖 已自动为此 PR 请求 Copilot ( ${copilotReviewerLogin} ) 代码审查，因为源分支名以 "VHNP" 开头。`
-              });
-
-            } catch (error) {
-              console.error('请求 Copilot reviewer 失败：', error.message);
-
-              // 回退：添加一条触发语句评论
-              try {
-                await github.rest.issues.createComment({
-                  owner,
-                  repo,
-                  issue_number: pull_number,
-                  body: '@copilot review\n\n(自动流程回退：直接请求 reviewer 失败，改为评论触发。)'
-                });
-                console.log('已通过评论尝试触发 Copilot review。');
-              } catch (commentError) {
-                console.error('添加回退评论也失败：', commentError.message);
-                throw commentError;
-              }
+            if (alreadyTriggered) {
+              console.log('Detected existing @copilot review comment, skip creating a new one.');
+              return;
             }
+
+            // 2. 仅留下触发审查的评论，明确不让它创建新 PR
+            const body = [
+              '@copilot review',
+              '',
+              '🤖 自动触发：源分支名称以 "VHNP" 开头。',
+              '请仅进行代码审查并留下 Review，不要创建新的分支或新的 PR。'
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pull_number,
+              body
+            });
+
+            console.log('Posted @copilot review comment successfully.')
 
       - name: Skip Copilot Review
         if: steps.check-branch.outputs.result != 'true'
         run: |
-          echo "Source branch does not start with VHNP. Copilot review will not be requested."
+          echo "Branch does not start with VHNP. Copilot review will not be triggered."
