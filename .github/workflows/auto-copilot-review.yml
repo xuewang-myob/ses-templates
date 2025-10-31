@@ -10,75 +10,26 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
-    
+
     steps:
-      - name: Get PR creator email
-        id: get-email
+      - name: Check if branch starts with VHNP
+        id: check-branch
         uses: actions/github-script@v7
         with:
           script: |
-            const creator = context.payload.pull_request.user.login;
-            
-            // Get user email from commits
-            const commits = await github.rest.pulls.listCommits({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number
-            });
-            
-            // Try to find email from the most recent commit
-            let userEmail = '';
-            if (commits.data.length > 0) {
-              const latestCommit = commits.data[commits.data.length - 1];
-              if (latestCommit.commit.author && latestCommit.commit.author.email) {
-                userEmail = latestCommit.commit.author.email;
-              }
-            }
-            
-            // If no email found in commits, try to get from user API
-            if (!userEmail) {
-              try {
-                const user = await github.rest.users.getByUsername({
-                  username: creator
-                });
-                userEmail = user.data.email || '';
-              } catch (error) {
-                console.log('Could not fetch user email from API');
-              }
-            }
-            
-            console.log(`PR Creator: ${creator}`);
-            console.log(`User Email: ${userEmail}`);
-            
-            return userEmail;
-      
-      - name: Check if email is in allowed list
-        id: check-email
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const allowedEmails = [
-              'xue.wang@myob.com',
-              'example1@test.com',
-              'example2@test.com'
-            ];
-            
-            const userEmail = '${{ steps.get-email.outputs.result }}';
-            const cleanEmail = userEmail.replace(/^["']|["']$/g, '').toLowerCase();
-            
-            console.log(`Checking email: ${cleanEmail}`);
-            console.log(`Allowed emails: ${allowedEmails.join(', ')}`);
-            
-            const isAllowed = allowedEmails.some(email => 
-              email.toLowerCase() === cleanEmail
-            );
-            
-            console.log(`Is email allowed: ${isAllowed}`);
-            
-            return isAllowed;
-      
+            const headRef = context.payload.pull_request.head.ref;
+
+            console.log(`Source branch: ${headRef}`);
+
+            // Check if branch name starts with VHNP (case-insensitive)
+            const startsWithVHNP = headRef.toUpperCase().startsWith('VHNP');
+
+            console.log(`Branch starts with VHNP: ${startsWithVHNP}`);
+
+            return startsWithVHNP;
+
       - name: Request Copilot Review
-        if: steps.check-email.outputs.result == 'true'
+        if: steps.check-branch.outputs.result == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -91,36 +42,41 @@ jobs:
                 body: '@copilot review',
                 event: 'COMMENT'
               });
-              
+
               console.log('Successfully requested Copilot review');
-              
+
               // Add a notification comment
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.payload.pull_request.number,
-                body: '🤖 Copilot review has been automatically requested for this PR based on the creator\'s email address.'
+                body: '🤖 Copilot review has been automatically requested ' +
+                      'for this PR because the source branch starts with "VHNP".'
               });
             } catch (error) {
-              console.error('Error requesting Copilot review via review comment:', error.message);
-              
+              console.error('Error requesting Copilot review via review comment:',
+                            error.message);
+
               // Fallback: add a regular comment mentioning copilot
               try {
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.payload.pull_request.number,
-                  body: '@copilot review\n\n🤖 Copilot review has been automatically requested for this PR based on the creator\'s email address.'
+                  body: '@copilot review\n\n🤖 Copilot review has been ' +
+                        'automatically requested for this PR because the ' +
+                        'source branch starts with "VHNP".'
                 });
-                
+
                 console.log('Successfully added comment to request Copilot review');
               } catch (commentError) {
                 console.error('Error adding comment:', commentError.message);
                 throw commentError;
               }
             }
-      
+
       - name: Skip Copilot Review
-        if: steps.check-email.outputs.result != 'true'
+        if: steps.check-branch.outputs.result != 'true'
         run: |
-          echo "PR creator's email is not in the allowed list. Copilot review will not be requested."
+          echo "Source branch does not start with VHNP." \
+               "Copilot review will not be requested."
