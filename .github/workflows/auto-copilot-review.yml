@@ -1,126 +1,49 @@
-name: Auto Enable Copilot Review
-
+name: Auto request Copilot review (VHNP)
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, ready_for_review, synchronize]
 
 jobs:
-  check-and-enable-copilot:
+  copilot-review:
+    if: startsWith(github.event.pull_request.head.ref, 'VHNP') && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
       contents: read
-    
     steps:
-      - name: Get PR creator email
-        id: get-email
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const creator = context.payload.pull_request.user.login;
-            
-            // Get user email from commits
-            const commits = await github.rest.pulls.listCommits({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number
-            });
-            
-            // Try to find email from the most recent commit
-            let userEmail = '';
-            if (commits.data.length > 0) {
-              const latestCommit = commits.data[commits.data.length - 1];
-              if (latestCommit.commit.author && latestCommit.commit.author.email) {
-                userEmail = latestCommit.commit.author.email;
-              }
-            }
-            
-            // If no email found in commits, try to get from user API
-            if (!userEmail) {
-              try {
-                const user = await github.rest.users.getByUsername({
-                  username: creator
-                });
-                userEmail = user.data.email || '';
-              } catch (error) {
-                console.log('Could not fetch user email from API');
-              }
-            }
-            
-            console.log(`PR Creator: ${creator}`);
-            console.log(`User Email: ${userEmail}`);
-            
-            return userEmail;
-      
-      - name: Check if email is in allowed list
-        id: check-email
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const allowedEmails = [
-              'xue.wang@myob.com',
-              'example1@test.com',
-              'example2@test.com'
-            ];
-            
-            const userEmail = '${{ steps.get-email.outputs.result }}';
-            const cleanEmail = userEmail.replace(/^["']|["']$/g, '').toLowerCase();
-            
-            console.log(`Checking email: ${cleanEmail}`);
-            console.log(`Allowed emails: ${allowedEmails.join(', ')}`);
-            
-            const isAllowed = allowedEmails.some(email => 
-              email.toLowerCase() === cleanEmail
-            );
-            
-            console.log(`Is email allowed: ${isAllowed}`);
-            
-            return isAllowed;
-      
-      - name: Request Copilot Review
-        if: steps.check-email.outputs.result == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            try {
-              // Request Copilot review by creating a review comment
-              await github.rest.pulls.createReview({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number,
-                body: '@copilot review',
-                event: 'COMMENT'
-              });
-              
-              console.log('Successfully requested Copilot review');
-              
-              // Add a notification comment
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.pull_request.number,
-                body: '🤖 Copilot review has been automatically requested for this PR based on the creator\'s email address.'
-              });
-            } catch (error) {
-              console.error('Error requesting Copilot review via review comment:', error.message);
-              
-              // Fallback: add a regular comment mentioning copilot
-              try {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.payload.pull_request.number,
-                  body: '@copilot review\n\n🤖 Copilot review has been automatically requested for this PR based on the creator\'s email address.'
-                });
-                
-                console.log('Successfully added comment to request Copilot review');
-              } catch (commentError) {
-                console.error('Error adding comment:', commentError.message);
-                throw commentError;
-              }
-            }
-      
-      - name: Skip Copilot Review
-        if: steps.check-email.outputs.result != 'true'
+      - name: Show head/base branch
         run: |
-          echo "PR creator's email is not in the allowed list. Copilot review will not be requested."
+          echo "Head: ${{ github.event.pull_request.head.ref }}"
+          echo "Base: ${{ github.event.pull_request.base.ref }}"
+
+      - name: Check existing requested reviewers
+        id: check
+        run: |
+          PR=${{ github.event.pull_request.number }}
+            REPO=${{ github.repository }}
+          EXISTING=$(gh api /repos/$REPO/pulls/$PR/requested_reviewers --jq '.users[].login' || true)
+          echo "Existing requested reviewers:"
+          echo "$EXISTING"
+          SHOULD_REQUEST=true
+          for r in $EXISTING; do
+            if [ "${r,,}" = "copilot" ]; then
+              SHOULD_REQUEST=false
+              break
+            fi
+          done
+          echo "should_request=$SHOULD_REQUEST" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Request Copilot review
+        if: steps.check.outputs.should_request == 'true'
+        uses: octokit/request-action@v2
+        with:
+          route: POST /repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers
+          reviewers: '["Copilot"]'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log skipped
+        if: steps.check.outputs.should_request != 'true'
+        run: echo "Copilot already requested; skipping."
